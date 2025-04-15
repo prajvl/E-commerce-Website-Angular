@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="shopApp" ng-controller="cartCtrl">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Cart</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background: linear-gradient(to right, #f8f9fa, #e0eafc);
+      min-height: 100vh;
+    }
+    .cart-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cart-header i {
+      font-size: 1.5rem;
+      color: #007bff;
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .table th, .table td {
+      vertical-align: middle !important;
+    }
+  </style>
+</head>
+<body class="container mt-5 fade-in">
+
+  <div class="cart-header mb-4">
+    <i class="fas fa-shopping-cart"></i>
+    <h2>Your Shopping Cart</h2>
+  </div>
+
+  <div ng-if="loading" class="text-muted">Loading cart items...</div>
+
+  <div ng-if="!loading && cartItems.length === 0" class="alert alert-info">
+    Your cart is empty. <a href="index.html" class="alert-link">Start shopping</a>
+  </div>
+
+  <table class="table table-hover shadow-sm" ng-if="cartItems.length > 0">
+    <thead class="thead-light">
+      <tr>
+        <th>Name</th>
+        <th>Qty</th>
+        <th>Price</th>
+        <th>Total</th>
+        <th style="width: 100px;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="item in cartItems">
+        <td>{{item.name}}</td>
+        <td>{{item.quantity}}</td>
+        <td>₹{{item.price | number:2}}</td>
+        <td>₹{{item.price * item.quantity | number:2}}</td>
+        <td>
+          <button class="btn btn-sm btn-danger" ng-click="removeFromCart(item.id)">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div ng-if="cartItems.length > 0" class="d-flex justify-content-between align-items-center mt-4">
+    <h4>Total: <span class="text-success">₹{{total | number:2}}</span></h4>
+    <div>
+      <a href="checkout.html" class="btn btn-primary">Checkout</a>
+      <a href="index.html" class="btn btn-outline-secondary ml-2">Back to Home</a>
+    </div>
+  </div>
+
+  <!-- AngularJS & Logic -->
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+  <script>
+    var app = angular.module('shopApp', []);
+
+    app.controller('cartCtrl', function($scope, $http) {
+      $scope.cartItems = [];
+      $scope.total = 0;
+      $scope.loading = true;
+
+      // Load cart
+      $http.get('php/cart.php?action=list').then(function(res) {
+        $scope.cartItems = res.data;
+        $scope.calculateTotal();
+        $scope.loading = false;
+      });
+
+      $scope.calculateTotal = function() {
+        $scope.total = $scope.cartItems.reduce((sum, item) => {
+          return sum + item.price * item.quantity;
+        }, 0);
+      };
+
+      $scope.removeFromCart = function(itemId) {
+        $http.post('php/cart.php', { action: 'remove', id: itemId }).then(function(response) {
+          if (response.data.status === 'deleted') {
+            $scope.cartItems = $scope.cartItems.filter(item => item.id !== itemId);
+            $scope.calculateTotal();
+            alert('Item removed from cart!');
+          } else {
+            alert('Failed to remove item.');
+          }
+        });
+      };
+    });
+  </script>
+</body>
+</html>
